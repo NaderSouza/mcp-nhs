@@ -6,7 +6,7 @@ Este projeto configura um ambiente de monitoramento utilizando Zabbix, Grafana e
 
 - **docker-compose.yml**: Configura todos os serviços necessários, incluindo MySQL, Zabbix Server, Zabbix Frontend, Grafana, Loki e Promtail.
 - **loki-config.yaml**: Configuração do Loki para coleta e armazenamento de logs.
-- **promtail-config.yaml**: Configuração do Promtail para envio de logs para o Loki.
+- **prometheus-config.yaml**: Configuração do Prometheus para coleta de métricas.
 - **zabbix/**: Diretório contendo scripts e configurações específicas do Zabbix.
 - **zabbix-sql/**: Diretório com scripts SQL para configuração do banco de dados do Zabbix.
 - **images.sql, schema.sql, data.sql**: Scripts SQL para inicialização e configuração do banco de dados.
@@ -17,7 +17,7 @@ Este projeto configura um ambiente de monitoramento utilizando Zabbix, Grafana e
 - **Zabbix**: Para monitoramento de métricas.
 - **Grafana**: Para visualização de métricas e logs.
 - **Loki**: Para agregação e consulta de logs.
-- **Promtail**: Para coleta e envio de logs para o Loki.
+- **Prometheus**: Para coleta de métricas e monitoramento.
 - **MySQL**: Banco de dados para o Zabbix.
 
 ## Como Executar
@@ -40,7 +40,7 @@ Este projeto configura um ambiente de monitoramento utilizando Zabbix, Grafana e
 
 ## Configurações Adicionais
 
-- **Configuração do Loki e Promtail**: As configurações podem ser ajustadas diretamente no `docker-compose.yml` para simplificar a implantação.
+- **Configuração do Loki e Prometheus**: As configurações podem ser ajustadas diretamente no `docker-compose.yml` para simplificar a implantação.
 
 ## Contribuições
 

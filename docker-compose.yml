@@ -8,6 +8,7 @@ volumes:
   grafana_data: {}
   loki_data: {}
   loki_wal: {}
+  prometheus_data: {}
 
 services:
   mysql:
@@ -88,6 +89,9 @@ services:
     depends_on:
       - zabbix-server
       - loki
+      - prometheus
+    environment:
+      - GF_INSTALL_PLUGINS=alexanderzobnin-zabbix-app
     restart: always
 
   loki:
@@ -98,18 +102,21 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./loki-config.yaml:/etc/loki/local-config.yaml
+      - ./loki-config.yaml:/etc/loki/local-config.yml
       - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yml
     restart: always
 
-  promtail:
-    image: grafana/promtail:latest
-    container_name: promtail
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
     networks:
       - monitoring
+    ports:
+      - "9090:9090"
     volumes:
-      - /var/log:/var/log
-      - ./promtail-config.yaml:/etc/promtail/promtail.yaml
-    command: -config.file=/etc/promtail/promtail.yaml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
     restart: always
