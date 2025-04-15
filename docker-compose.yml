@@ -1,104 +1,115 @@
 version: "3.8"
 
 networks:
-  network-zabbix:
+  monitoring:
     driver: bridge
+
+volumes:
+  grafana_data: {}
+  loki_data: {}
+  loki_wal: {}
 
 services:
   mysql:
-    container_name: mysql
     image: mysql:5.7
+    container_name: mysql
     networks:
-      - network-zabbix
+      - monitoring
     ports:
       - "3306:3306"
     volumes:
-      - "./zabbix/mysql:/var/lib/data"
+      - ./zabbix/mysql:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=carryontech
-      - MYSQL_DATABASE=zabbix
-      - MYSQL_USER=zabbix
-      - MYSQL_PASSWORD=carryontech
+      MYSQL_ROOT_PASSWORD: carryontech
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: carryontech
 
   zabbix-server:
-    container_name: zabbix-server
     image: zabbix/zabbix-server-mysql:ubuntu-5.0.1
+    container_name: zabbix-server
     networks:
-      - network-zabbix
-    links:
-      - mysql
-    restart: always
+      - monitoring
     ports:
       - "10051:10051"
     volumes:
-      - "./zabbix/alertscripts:/usr/lib/zabbix/alertscripts"
+      - ./zabbix/alertscripts:/usr/lib/zabbix/alertscripts
     environment:
-      - DB_SERVER_HOST=mysql
-      - MYSQL_DATABASE=zabbix
-      - MYSQL_USER=zabbix
-      - MYSQL_PASSWORD=carryontech
+      DB_SERVER_HOST: mysql
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: carryontech
     depends_on:
       - mysql
+    restart: always
 
   zabbix-frontend:
-    container_name: zabbix-frontend
     image: zabbix/zabbix-web-apache-mysql:ubuntu-5.0.1
+    container_name: zabbix-frontend
     networks:
-      - network-zabbix
-    links:
-      - mysql
-    restart: always
+      - monitoring
     ports:
-      - "80:8080"
-      - "443:8443"
+      - "8080:8080"
+      - "8443:8443"
     environment:
-      - DB_SERVER_HOST=mysql
-      - MYSQL_DATABASE=zabbix
-      - MYSQL_USER=zabbix
-      - MYSQL_PASSWORD=carryontech
-      - PHP_TZ=America/Sao_Paulo
+      DB_SERVER_HOST: mysql
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: carryontech
+      PHP_TZ: America/Sao_Paulo
     depends_on:
       - mysql
-
-  grafana:
-    container_name: grafana
-    image: grafana/grafana
-    networks:
-      - network-zabbix
-
-    links:
-      - mysql
-      - zabbix-server
     restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_INSTALL_PLUGINS=alexanderzobnin-zabbix-app
-    depends_on:
-      - mysql
-      - zabbix-server
+
   zabbix-agent:
-    container_name: zabbix-agent
     image: zabbix/zabbix-agent2:alpine-5.0.1
-    user: root
+    container_name: zabbix-agent
     networks:
-      - network-zabbix
-    links:
-      - zabbix-server
-    restart: always
+      - monitoring
+    ports:
+      - "10050:10050"
     privileged: true
     volumes:
       - /var/run:/var/run
-    ports:
-      - "10050:10050"
     environment:
-      - ZBX_HOSTNAME=Zabbix server
-      - ZBX_SERVER_HOST=zabbix-server
+      ZBX_HOSTNAME: Zabbix server
+      ZBX_SERVER_HOST: zabbix-server
+    restart: always
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    networks:
+      - monitoring
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - zabbix-server
+      - loki
+    restart: always
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:2.9.3
+    container_name: loki
+    networks:
+      - monitoring
     ports:
       - "3100:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
+    restart: always
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
     networks:
-      - network-zabbix
+      - monitoring
+    volumes:
+      - /var/log:/var/log
+      - ./promtail-config.yaml:/etc/promtail/promtail.yaml
+    command: -config.file=/etc/promtail/promtail.yaml
+    restart: always
